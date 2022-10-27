@@ -23,8 +23,8 @@ import (
 func UnaryClientInterceptor() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		// Get the operating system the client is running on
-		rand.Seed(time.Now().UnixNano())	
-		
+		rand.Seed(time.Now().UnixNano())
+
 		tok := rand.Intn(10)
 
 		tok_string := strconv.Itoa(tok)
@@ -37,7 +37,9 @@ func UnaryClientInterceptor() grpc.UnaryClientInterceptor {
 		err := invoker(ctx, method, req, reply, cc, opts...)
 
 		log.Printf("client interceptor hit: appending OS: '%v' to metadata", tok_string)
-
+		// Jiali: I suspect that before and after invoker are two time slot:
+		// request and response, so before invoker we implement token and add it to metadata
+		// while after invoker we handle the price on the response.
 		return err
 	}
 }
@@ -110,7 +112,10 @@ func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 
 		h, err := handler(ctx, req)
 		log.Printf("server interceptor hit: hydrating type with OS: '%v' and IP: '%v'", tok[0], ip)
-
+		// Jiali: I suspect that before and after `handler` are two time slot:
+		// request and response, so before it we implement overload handler
+		// and check the metadata/token and do AQM.
+		// while after `handler` we calculate the price update and add it to response.
 		return h, err
 	}
 }
